@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,7 +18,8 @@ import javax.servlet.http.HttpServletResponse;
 public class databaseDataAccessLayer  implements TemplateDataAccessLayer{
 	Scanner stringInput = new Scanner(System.in);
 	Scanner intInput = new Scanner(System.in);
-	NotificationTemplate notification = new NotificationTemplate();
+	NotificationTemplate tempTemplate = new NotificationTemplate();
+	String query = "";
 	
         public boolean addTemplate(NotificationTemplate template)
         {
@@ -26,10 +28,10 @@ public class databaseDataAccessLayer  implements TemplateDataAccessLayer{
         		Connection con=DriverManager.getConnection(  
         		"jdbc:mysql://localhost:3306/notifications","root","hassan123");
         		Statement stmt = con.createStatement(); 
-        		notification = searchTemplates(template.id);
-        		if(notification == null)
+        		tempTemplate = searchTemplates(template.id);
+        		if(tempTemplate == null)
         		{
-        			String query = "INSERT INTO notificationTable(tempID, subject, content, language)" +
+        			query = "INSERT INTO templateTable(tempID, subject, content, language)" +
                             " values (" + template.id + ", '" + template.subject + "' ," + template.content + ", " + template.language + ");";
             		stmt.executeUpdate(query);
             		return true;
@@ -47,10 +49,10 @@ public class databaseDataAccessLayer  implements TemplateDataAccessLayer{
         		Connection con=DriverManager.getConnection(  
         		"jdbc:mysql://localhost:3306/notifications","root","hassan123");
         		Statement stmt = con.createStatement();  
-        		notification = searchTemplates(templateID);
-                if(notification != null)
+        		tempTemplate = searchTemplates(templateID);
+                if(tempTemplate != null)
                 {
-                	String query = "DELETE FROM notificationTable WHERE tempID = '" + templateID + "'";
+                	 query = "DELETE FROM templateTable WHERE tempID = '" + templateID + "'";
                     stmt.executeUpdate(query);
                     return true;
                 }
@@ -68,10 +70,10 @@ public class databaseDataAccessLayer  implements TemplateDataAccessLayer{
         		Connection con=DriverManager.getConnection(  
         		"jdbc:mysql://localhost:3306/notifications","root","hassan123");
         		Statement stmt = con.createStatement();
-            	notification = searchTemplates(template.id);
-        		if(notification != null)
+        		tempTemplate = searchTemplates(template.id);
+        		if(tempTemplate != null)
         		{
-        			String query = "UPDATE notificationTable SET content = '" + template.content + "'" +", subject = '" + template.subject + "'" + ",language = '" + template.language + "' WHERE id = '" + template.id + "'";
+        			query = "UPDATE templateTable SET content = '" + template.content + "'" +", subject = '" + template.subject + "'" + ",language = '" + template.language + "' WHERE id = '" + template.id + "'";
                     stmt.executeUpdate(query);
                     return true;
         		}
@@ -84,9 +86,8 @@ public class databaseDataAccessLayer  implements TemplateDataAccessLayer{
         }
 
         public NotificationTemplate getTemplate(int templateID) {
-			LanguageEnum obj = null;
-			notification = searchTemplates(templateID);
-        	return notification;
+			tempTemplate = searchTemplates(templateID);
+        	return tempTemplate;
         }
 
         public NotificationTemplate searchTemplates(int templateID) {
@@ -96,23 +97,53 @@ public class databaseDataAccessLayer  implements TemplateDataAccessLayer{
         		Connection con=DriverManager.getConnection(  
         		"jdbc:mysql://localhost:3306/notifications","root","hassan123");
         		Statement stmt = con.createStatement();  
-        		String query = "SELECT * FROM notificationTable where tempID = '" + templateID + "'";
+        		query = "SELECT * FROM templateTable where tempID = '" + templateID + "'";
                 ResultSet rs = stmt.executeQuery(query);       	
             	if(rs.next())
                 {
-            		notification.id = Integer.parseInt(rs.getString("tempID"));
-            		notification.subject = rs.getString("subject");
-            		notification.content = rs.getString("content");
+            		tempTemplate.id = Integer.parseInt(rs.getString("tempID"));
+            		tempTemplate.subject = rs.getString("subject");
+            		tempTemplate.content = rs.getString("content");
         			
                 	if(rs.getString("language").equals("arabic"))
-                		notification.language = obj.arabic;
+                		tempTemplate.language = obj.arabic;
                 	else
-                		notification.language = obj.english;            	
+                		tempTemplate.language = obj.english;            	
                 }
         	   }
         		catch(Exception e){
         		System.out.println(e);
         	}
-        	return notification;
+        	return tempTemplate;
+        }
+        
+        public boolean addNotification(notification notify)
+        {
+        	boolean added = false;
+        	try{  
+        		Class.forName("com.mysql.jdbc.Driver");  
+        		Connection con=DriverManager.getConnection(  
+        		"jdbc:mysql://localhost:3306/notifications","root","hassan123");
+        		Statement stmt = con.createStatement();
+        		if(notify.sendType.equals("sms"))
+        		{
+        			query = "INSERT INTO smsNotification(tempID, subject, content, language, number, sendType)" +
+                            " values (" + notify.id + ", '" + notify.subject + "' ," + notify.content + ", " + notify.language + "' ," + notify.number + ", " + notify.sendType + ");";
+        			added = true;
+        		}
+        			
+        		else if(notify.sendType.equals("mail"))
+        		{
+        			query = "INSERT INTO mailNotification(tempID, subject, content, language, email, sendType)" +
+                            " values (" + notify.id + ", '" + notify.subject + "' ," + notify.content + ", " + notify.language + "' ," + notify.email + ", " + notify.sendType + ");";
+        			added = true;
+        		}
+        			
+        		stmt.executeUpdate(query);
+        	}
+        	catch(Exception e){
+        		System.out.println(e);
+        	}  
+        	return added;
         }
     };
